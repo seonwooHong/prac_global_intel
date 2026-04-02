@@ -1,4 +1,5 @@
-import { LANGUAGES, changeLanguage, getCurrentLanguage } from '../services/i18n';
+import { LANGUAGE_REGISTRY, LANGUAGE_MAP } from '../config/languages';
+import { changeLanguage, getCurrentLanguage } from '../services/i18n';
 
 export class LanguageSelector {
     private element: HTMLElement;
@@ -18,27 +19,13 @@ export class LanguageSelector {
     }
 
     private getFlagUrl(langCode: string): string {
-        const map: Record<string, string> = {
-            en: 'gb',
-            ar: 'sa',
-            zh: 'cn',
-            fr: 'fr',
-            de: 'de',
-            es: 'es',
-            it: 'it',
-            pl: 'pl',
-            pt: 'pt',
-            nl: 'nl',
-            sv: 'se',
-            ru: 'ru',
-            ja: 'jp'
-        };
-        const countryCode = map[langCode] || langCode;
+        const def = LANGUAGE_MAP.get(langCode);
+        const countryCode = def?.flagCountryCode || langCode;
         return `https://flagcdn.com/24x18/${countryCode}.png`;
     }
 
     private render(): void {
-        const currentLangObj = LANGUAGES.find(l => l.code === this.currentLang) || LANGUAGES[0];
+        const currentLangObj = LANGUAGE_REGISTRY.find(l => l.code === this.currentLang) || LANGUAGE_REGISTRY[0];
 
         this.element.innerHTML = `
       <button class="lang-selector-btn" aria-label="Select Language">
@@ -47,7 +34,7 @@ export class LanguageSelector {
         <span class="lang-arrow">▼</span>
       </button>
       <div class="lang-dropdown hidden">
-        ${LANGUAGES.map(lang => `
+        ${LANGUAGE_REGISTRY.map(lang => `
           <div class="lang-option ${lang.code === this.currentLang ? 'active' : ''}" data-code="${lang.code}">
             <img src="${this.getFlagUrl(lang.code)}" alt="${lang.label}" class="lang-flag-icon" />
             <span class="lang-name">${lang.label}</span>

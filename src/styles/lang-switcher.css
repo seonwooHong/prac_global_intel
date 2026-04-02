@@ -20,7 +20,7 @@
 .custom-lang-selector {
   position: relative;
   display: inline-block;
-  margin-right: 8px;
+  z-index: 1001;
 }
 
 .lang-selector-btn {

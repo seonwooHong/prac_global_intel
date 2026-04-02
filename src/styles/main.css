@@ -1,5 +1,6 @@
 @import './rtl-overrides.css';
 @import './panels.css';
+@import './lang-switcher.css';
 
 /* ============================================================
    Theme Colors — overridden by [data-theme="light"] below
@@ -275,6 +276,9 @@ canvas,
   border-bottom: 1px solid var(--border);
   height: 40px;
   flex-shrink: 0;
+  overflow: visible;
+  position: relative;
+  z-index: 100;
 }
 
 .header-left {
@@ -626,7 +630,34 @@ canvas,
 .header-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
+}
+
+.header-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 14px;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.header-btn:hover {
+  color: var(--text);
+  border-color: var(--text-dim);
+  background: var(--bg-hover, rgba(255,255,255,0.05));
+}
+
+.header-btn.active {
+  color: var(--green);
+  border-color: var(--green);
 }
 
 /* Layout tabs */

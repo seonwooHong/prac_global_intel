@@ -1,56 +1,61 @@
 import i18next from 'i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
+import {
+  LANGUAGE_REGISTRY,
+  LANGUAGE_MAP,
+  RTL_LANGUAGE_CODES,
+  SUPPORTED_LANGUAGE_CODES,
+} from '../config/languages';
 
-const SUPPORTED_LANGUAGES = ['en', 'fr', 'de', 'es', 'it', 'pl', 'pt', 'nl', 'sv', 'ru', 'ar', 'zh', 'ja'] as const;
-type SupportedLanguage = typeof SUPPORTED_LANGUAGES[number];
 type TranslationDictionary = Record<string, unknown>;
 
-const SUPPORTED_LANGUAGE_SET = new Set<SupportedLanguage>(SUPPORTED_LANGUAGES);
-const loadedLanguages = new Set<SupportedLanguage>();
+/** Derived list of codes for i18next supportedLngs */
+const SUPPORTED_CODES = LANGUAGE_REGISTRY.map(l => l.code);
 
-const LOCALE_LOADERS: Record<SupportedLanguage, () => Promise<TranslationDictionary>> = {
-  en: async () => (await import('../locales/en.json')).default as TranslationDictionary,
-  fr: async () => (await import('../locales/fr.json')).default as TranslationDictionary,
-  de: async () => (await import('../locales/de.json')).default as TranslationDictionary,
-  es: async () => (await import('../locales/es.json')).default as TranslationDictionary,
-  it: async () => (await import('../locales/it.json')).default as TranslationDictionary,
-  pl: async () => (await import('../locales/pl.json')).default as TranslationDictionary,
-  pt: async () => (await import('../locales/pt.json')).default as TranslationDictionary,
-  nl: async () => (await import('../locales/nl.json')).default as TranslationDictionary,
-  sv: async () => (await import('../locales/sv.json')).default as TranslationDictionary,
-  ru: async () => (await import('../locales/ru.json')).default as TranslationDictionary,
-  ar: async () => (await import('../locales/ar.json')).default as TranslationDictionary,
-  zh: async () => (await import('../locales/zh.json')).default as TranslationDictionary,
-  ja: async () => (await import('../locales/ja.json')).default as TranslationDictionary,
-};
+const loadedLanguages = new Set<string>();
 
-const RTL_LANGUAGES = new Set(['ar']);
+/**
+ * Dynamic locale loader using Vite's glob import.
+ * Adding a new JSON file under src/locales/ (+ a LANGUAGE_REGISTRY entry)
+ * is all that's needed — no manual import map required.
+ */
+const localeModules = import.meta.glob<TranslationDictionary>(
+  '../locales/*.json',
+  { import: 'default' },
+);
 
-function normalizeLanguage(lng: string): SupportedLanguage {
+function localeLoader(code: string): (() => Promise<TranslationDictionary>) | undefined {
+  const key = `../locales/${code}.json`;
+  return localeModules[key];
+}
+
+function normalizeLanguage(lng: string): string {
   const base = (lng || 'en').split('-')[0]?.toLowerCase() || 'en';
-  if (SUPPORTED_LANGUAGE_SET.has(base as SupportedLanguage)) {
-    return base as SupportedLanguage;
-  }
+  if (SUPPORTED_LANGUAGE_CODES.has(base)) return base;
   return 'en';
 }
 
 function applyDocumentDirection(lang: string): void {
   const base = lang.split('-')[0] || lang;
-  document.documentElement.setAttribute('lang', base === 'zh' ? 'zh-CN' : base);
-  if (RTL_LANGUAGES.has(base)) {
+  const def = LANGUAGE_MAP.get(base);
+  document.documentElement.setAttribute('lang', def?.locale ?? base);
+  if (RTL_LANGUAGE_CODES.has(base)) {
     document.documentElement.setAttribute('dir', 'rtl');
   } else {
     document.documentElement.removeAttribute('dir');
   }
 }
 
-async function ensureLanguageLoaded(lng: string): Promise<SupportedLanguage> {
+async function ensureLanguageLoaded(lng: string): Promise<string> {
   const normalized = normalizeLanguage(lng);
   if (loadedLanguages.has(normalized) && i18next.hasResourceBundle(normalized, 'translation')) {
     return normalized;
   }
 
-  const translation = await LOCALE_LOADERS[normalized]();
+  const loader = localeLoader(normalized);
+  if (!loader) return 'en';
+
+  const translation = await loader();
   i18next.addResourceBundle(normalized, 'translation', translation, true, true);
   loadedLanguages.add(normalized);
   return normalized;
@@ -65,7 +70,8 @@ export async function initI18n(): Promise<void> {
     return;
   }
 
-  const fallbackTranslation = await LOCALE_LOADERS.en();
+  const enLoader = localeLoader('en');
+  const fallbackTranslation = enLoader ? await enLoader() : {};
   loadedLanguages.add('en');
 
   await i18next
@@ -74,12 +80,12 @@ export async function initI18n(): Promise<void> {
       resources: {
         en: { translation: fallbackTranslation },
       },
-      supportedLngs: [...SUPPORTED_LANGUAGES],
+      supportedLngs: SUPPORTED_CODES,
       nonExplicitSupportedLngs: true,
       fallbackLng: 'en',
       debug: import.meta.env.DEV,
       interpolation: {
-        escapeValue: false, // not needed for these simple strings
+        escapeValue: false,
       },
       detection: {
         order: ['localStorage', 'navigator'],
@@ -89,7 +95,6 @@ export async function initI18n(): Promise<void> {
 
   const detectedLanguage = await ensureLanguageLoaded(i18next.language || 'en');
   if (detectedLanguage !== 'en') {
-    // Re-trigger translation resolution now that the detected bundle is loaded.
     await i18next.changeLanguage(detectedLanguage);
   }
 
@@ -106,7 +111,7 @@ export async function changeLanguage(lng: string): Promise<void> {
   const normalized = await ensureLanguageLoaded(lng);
   await i18next.changeLanguage(normalized);
   applyDocumentDirection(normalized);
-  window.location.reload(); // Simple reload to update all components for now
+  window.location.reload();
 }
 
 // Helper to get current language (normalized to short code)
@@ -116,27 +121,21 @@ export function getCurrentLanguage(): string {
 }
 
 export function isRTL(): boolean {
-  return RTL_LANGUAGES.has(getCurrentLanguage());
+  return RTL_LANGUAGE_CODES.has(getCurrentLanguage());
 }
 
 export function getLocale(): string {
   const lang = getCurrentLanguage();
-  const map: Record<string, string> = { en: 'en-US', zh: 'zh-CN', pt: 'pt-BR', ja: 'ja-JP' };
-  return map[lang] || lang;
+  const def = LANGUAGE_MAP.get(lang);
+  return def?.locale || lang;
 }
 
-export const LANGUAGES = [
-  { code: 'en', label: 'English', flag: '🇬🇧' },
-  { code: 'ar', label: 'العربية', flag: '🇸🇦' },
-  { code: 'zh', label: '中文', flag: '🇨🇳' },
-  { code: 'fr', label: 'Français', flag: '🇫🇷' },
-  { code: 'de', label: 'Deutsch', flag: '🇩🇪' },
-  { code: 'es', label: 'Español', flag: '🇪🇸' },
-  { code: 'it', label: 'Italiano', flag: '🇮🇹' },
-  { code: 'pl', label: 'Polski', flag: '🇵🇱' },
-  { code: 'pt', label: 'Português', flag: '🇵🇹' },
-  { code: 'nl', label: 'Nederlands', flag: '🇳🇱' },
-  { code: 'sv', label: 'Svenska', flag: '🇸🇪' },
-  { code: 'ru', label: 'Русский', flag: '🇷🇺' },
-  { code: 'ja', label: '日本語', flag: '🇯🇵' },
-];
+/**
+ * Re-export LANGUAGES for backward compatibility with components
+ * that import { LANGUAGES } from '../services/i18n'.
+ */
+export const LANGUAGES = LANGUAGE_REGISTRY.map(l => ({
+  code: l.code,
+  label: l.label,
+  flag: '',
+}));
