@@ -1,7 +1,9 @@
 export const config = { runtime: 'edge' };
 
 import { getCorsHeaders, isDisallowedOrigin } from './_cors.js';
+import { getCachedJson, setCachedJson } from './_upstash-cache.js';
 
+const YF_CACHE_TTL = 60;
 const SYMBOL_PATTERN = /^[A-Za-z0-9.^=\-]+$/;
 const MAX_SYMBOL_LENGTH = 20;
 
@@ -28,6 +30,17 @@ export default async function handler(req) {
     });
   }
 
+  const cacheKey = `yf:${symbol}`;
+  try {
+    const redisCached = await getCachedJson(cacheKey);
+    if (redisCached) {
+      return new Response(JSON.stringify(redisCached), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json', ...cors, 'Cache-Control': `public, max-age=${YF_CACHE_TTL}, s-maxage=${YF_CACHE_TTL}, stale-while-revalidate=30` },
+      });
+    }
+  } catch {}
+
   try {
     const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}`;
     const response = await fetch(yahooUrl, {
@@ -36,13 +49,15 @@ export default async function handler(req) {
       },
     });
 
-    const data = await response.text();
-    return new Response(data, {
+    const data = await response.json();
+    setCachedJson(cacheKey, data, YF_CACHE_TTL).catch(() => {});
+
+    return new Response(JSON.stringify(data), {
       status: response.status,
       headers: {
         'Content-Type': 'application/json',
         ...cors,
-        'Cache-Control': 'public, max-age=60, s-maxage=60, stale-while-revalidate=30',
+        'Cache-Control': `public, max-age=${YF_CACHE_TTL}, s-maxage=${YF_CACHE_TTL}, stale-while-revalidate=30`,
       },
     });
   } catch (error) {

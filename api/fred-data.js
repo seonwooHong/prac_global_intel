@@ -1,5 +1,8 @@
 import { getCorsHeaders, isDisallowedOrigin } from './_cors.js';
+import { getCachedJson, setCachedJson } from './_upstash-cache.js';
 export const config = { runtime: 'edge' };
+
+const FRED_CACHE_TTL = 3600;
 
 export default async function handler(req) {
   const corsHeaders = getCorsHeaders(req, 'GET, OPTIONS');
@@ -53,6 +56,17 @@ export default async function handler(req) {
     });
   }
 
+  const cacheKey = `fred:${seriesId}:${observationStart || ''}:${observationEnd || ''}`;
+  try {
+    const redisCached = await getCachedJson(cacheKey);
+    if (redisCached) {
+      return new Response(JSON.stringify(redisCached), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': `public, max-age=${FRED_CACHE_TTL}, s-maxage=${FRED_CACHE_TTL}, stale-while-revalidate=600`, ...corsHeaders },
+      });
+    }
+  } catch {}
+
   try {
     const params = new URLSearchParams({
       series_id: seriesId,
@@ -71,12 +85,13 @@ export default async function handler(req) {
     });
 
     const data = await response.json();
+    setCachedJson(cacheKey, data, FRED_CACHE_TTL).catch(() => {});
 
     return new Response(JSON.stringify(data), {
       status: response.status,
       headers: {
         'Content-Type': 'application/json',
-        'Cache-Control': 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=600',
+        'Cache-Control': `public, max-age=${FRED_CACHE_TTL}, s-maxage=${FRED_CACHE_TTL}, stale-while-revalidate=600`,
         ...corsHeaders,
       },
     });

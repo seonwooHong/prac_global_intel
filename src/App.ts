@@ -12,6 +12,9 @@ import {
   STORAGE_KEYS,
   SITE_VARIANT,
 } from '@/config';
+import { TickerBar } from '@/components/TickerBar';
+import { TradingViewChart } from '@/components/TradingViewChart';
+import { ExpertChat } from '@/components/ExpertChat';
 import { BETA_MODE } from '@/config/beta';
 import { fetchCategoryFeeds, getFeedFailures, fetchMultipleStocks, fetchCrypto, fetchPredictions, fetchEarthquakes, fetchWeatherAlerts, fetchFredData, fetchInternetOutages, isOutagesConfigured, fetchAisSignals, initAisStream, getAisStatus, disconnectAisStream, isAisConfigured, fetchCableActivity, fetchProtestEvents, getProtestStatus, fetchFlightDelays, fetchMilitaryFlights, fetchMilitaryVessels, initMilitaryVesselStream, isMilitaryVesselTrackingConfigured, initDB, updateBaseline, calculateDeviation, addToSignalHistory, saveSnapshot, cleanOldSnapshots, analysisWorker, fetchPizzIntStatus, fetchGdeltTensions, fetchNaturalEvents, fetchRecentAwards, fetchOilAnalytics, fetchCyberThreats, drainTrendingSignals } from '@/services';
 import { fetchCountryMarkets } from '@/services/polymarket';
@@ -1681,47 +1684,73 @@ export class App {
 
   private renderLayout(): void {
     this.container.innerHTML = `
-      <div class="header">
-        <div class="header-left">
-          <span class="logo">${t('app.title')}</span>
+      <div class="nav-bar">
+        <div class="nav-left">
+          <span class="nav-logo">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5"/><path d="M12 6v12M8 8l4-2 4 2M8 16l4 2 4-2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            Pacifica
+          </span>
+          <nav class="nav-links">
+            <a class="nav-link active">Trade</a>
+            <a class="nav-link">Portfolio</a>
+            <a class="nav-link">Points</a>
+            <a class="nav-link">Leaderboard</a>
+            <a class="nav-link">Referral</a>
+            <a class="nav-link nav-link-ai">AI</a>
+            <a class="nav-link">More ▾</a>
+          </nav>
         </div>
-        <div class="header-center"></div>
-        <div class="header-right">
-          <button class="header-btn" id="searchBtn" title="${t('header.search')}">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          </button>
+        <div class="nav-right">
           <button class="header-btn" id="settingsBtn" title="${t('header.settings')}">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
           </button>
           <button class="header-btn" id="sourcesBtn" title="${t('header.sources')}">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
           </button>
-          <button class="header-btn" id="copyLinkBtn" title="${t('header.copyLink')}">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
-          </button>
-          <button class="header-btn" id="fullscreenBtn" title="${t('header.fullscreen')}">⛶</button>
-          <button class="header-btn" id="headerThemeToggle" title="${t('header.toggleTheme')}">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-          </button>
+          <button class="nav-connect-btn">Connect</button>
         </div>
       </div>
-      <div class="main-content">
-        <div class="map-section" id="mapSection">
-          <div class="panel-header">
-            <div class="panel-header-left">
-              <span class="panel-title">${t('panels.map')}</span>
+      <div id="tickerBarMount"></div>
+      <div class="dashboard-layout" id="dashboardLayout">
+        <aside class="sidebar" id="sidebar">
+          <div class="sidebar-content" id="colLeft"></div>
+          <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" title="Toggle sidebar">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </button>
+        </aside>
+        <main class="main-area" id="mainArea">
+          <div class="map-section" id="mapSection">
+            <div class="panel-header">
+              <div class="panel-header-left">
+                <span class="panel-title">${t('panels.map')}</span>
+              </div>
+              <span class="header-clock" id="headerClock"></span>
+              <button class="map-pin-btn" id="mapPinBtn" title="${t('header.pinMap')}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 17v5M9 10.76a2 2 0 01-1.11 1.79l-1.78.9A2 2 0 005 15.24V16a1 1 0 001 1h12a1 1 0 001-1v-.76a2 2 0 00-1.11-1.79l-1.78-.9A2 2 0 0115 10.76V7a1 1 0 011-1 1 1 0 001-1V4a1 1 0 00-1-1H8a1 1 0 00-1 1v1a1 1 0 001 1 1 1 0 011 1v3.76z"/>
+                </svg>
+              </button>
             </div>
-            <span class="header-clock" id="headerClock"></span>
-            <button class="map-pin-btn" id="mapPinBtn" title="${t('header.pinMap')}">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 17v5M9 10.76a2 2 0 01-1.11 1.79l-1.78.9A2 2 0 005 15.24V16a1 1 0 001 1h12a1 1 0 001-1v-.76a2 2 0 00-1.11-1.79l-1.78-.9A2 2 0 0115 10.76V7a1 1 0 011-1 1 1 0 001-1V4a1 1 0 00-1-1H8a1 1 0 00-1 1v1a1 1 0 001 1 1 1 0 011 1v3.76z"/>
-              </svg>
-            </button>
+            <div class="map-container" id="mapContainer"></div>
           </div>
-          <div class="map-container" id="mapContainer"></div>
-          <div class="map-resize-handle" id="mapResizeHandle"></div>
+          <div class="content-row-middle" id="contentRowMiddle">
+            <div class="middle-left" id="liveNewsMount"></div>
+            <div class="middle-right" id="middleRightPanels"></div>
+          </div>
+          <div class="panels-grid" id="panelsGrid"></div>
+        </main>
+      </div>
+      <div class="app-footer">
+        <div class="footer-links">
+          <a class="footer-link">Announcements</a>
+          <a class="footer-link">Docs</a>
+          <a class="footer-link">X</a>
+          <a class="footer-link">Discord</a>
+          <a class="footer-link">Terms</a>
+          <a class="footer-link">Privacy</a>
         </div>
-        <div class="panels-grid" id="panelsGrid"></div>
       </div>
       <div class="modal-overlay" id="settingsModal">
         <div class="modal">
@@ -1883,8 +1912,6 @@ export class App {
   }
 
   private createPanels(): void {
-    const panelsGrid = document.getElementById('panelsGrid')!;
-
     // Initialize map in the map section
     // Default to MENA view on mobile for better focus
     // Uses deck.gl (WebGL) on desktop, falls back to D3/SVG on mobile
@@ -2150,51 +2177,50 @@ export class App {
     const insightsPanel = new InsightsPanel();
     this.panels['insights'] = insightsPanel;
 
-    // Add panels to grid in saved order
-    // Use DEFAULT_PANELS keys for variant-aware panel order
-    const defaultOrder = Object.keys(DEFAULT_PANELS).filter(k => k !== 'map');
-    const savedOrder = this.getSavedPanelOrder();
-    // Merge saved order with default to include new panels
-    let panelOrder = defaultOrder;
-    if (savedOrder.length > 0) {
-      // Add any missing panels from default that aren't in saved order
-      const missing = defaultOrder.filter(k => !savedOrder.includes(k));
-      // Remove any saved panels that no longer exist
-      const valid = savedOrder.filter(k => defaultOrder.includes(k));
-      // Insert missing panels after 'politics' (except monitors which goes at end)
-      const monitorsIdx = valid.indexOf('monitors');
-      if (monitorsIdx !== -1) valid.splice(monitorsIdx, 1); // Remove monitors temporarily
-      const insertIdx = valid.indexOf('politics') + 1 || 0;
-      const newPanels = missing.filter(k => k !== 'monitors');
-      valid.splice(insertIdx, 0, ...newPanels);
-      valid.push('monitors'); // Always put monitors last
-      panelOrder = valid;
+    // === Sidebar + Main Layout ===
+    // Mount TickerBar
+    const tickerMount = document.getElementById('tickerBarMount')!;
+    const tickerBar = new TickerBar();
+    tickerMount.appendChild(tickerBar.getElement());
+
+    // Mount TradingView chart + Expert Chat in sidebar
+    const colLeft = document.getElementById('colLeft')!;
+    const tvChart = new TradingViewChart();
+    colLeft.appendChild(tvChart.getElement());
+    const expertChat = new ExpertChat();
+    colLeft.appendChild(expertChat.getElement());
+
+    // Mount Live News in middle-left
+    const liveNewsMount = document.getElementById('liveNewsMount')!;
+    const liveNews = this.panels['live-news'];
+    if (liveNews) {
+      liveNewsMount.appendChild(liveNews.getElement());
     }
 
-    // CRITICAL: live-news MUST be first for CSS Grid layout (spans 2 columns)
-    // Move it to position 0 if it exists and isn't already first
-    const liveNewsIdx = panelOrder.indexOf('live-news');
-    if (liveNewsIdx > 0) {
-      panelOrder.splice(liveNewsIdx, 1);
-      panelOrder.unshift('live-news');
-    }
-
-    // live-webcams MUST follow live-news (one-time migration for existing users)
-    const webcamsIdx = panelOrder.indexOf('live-webcams');
-    if (webcamsIdx !== -1 && webcamsIdx !== panelOrder.indexOf('live-news') + 1) {
-      panelOrder.splice(webcamsIdx, 1);
-      const afterNews = panelOrder.indexOf('live-news') + 1;
-      panelOrder.splice(afterNews, 0, 'live-webcams');
-    }
-
-    panelOrder.forEach((key: string) => {
+    // Mount 2x3 panel grid in middle-right (next to live news)
+    const middleRight = document.getElementById('middleRightPanels')!;
+    const middleRightKeys = ['etf-flows', 'stablecoins', 'commodities', 'markets', 'economic', 'crypto'];
+    middleRightKeys.forEach(key => {
       const panel = this.panels[key];
       if (panel) {
-        const el = panel.getElement();
-        this.makeDraggable(el, key);
-        panelsGrid.appendChild(el);
+        middleRight.appendChild(panel.getElement());
       }
     });
+
+    // All remaining panels go into the visible 4-column grid
+    const panelsGrid = document.getElementById('panelsGrid')!;
+    const assignedPanels = new Set(['live-news', ...middleRightKeys]);
+    const defaultOrder = Object.keys(DEFAULT_PANELS).filter(k => k !== 'map');
+    defaultOrder.forEach((key: string) => {
+      if (assignedPanels.has(key)) return;
+      const panel = this.panels[key];
+      if (panel) {
+        panelsGrid.appendChild(panel.getElement());
+      }
+    });
+
+    // Sidebar collapse toggle
+    this.initSidebarCollapse();
 
     this.map.onTimeRangeChanged((range) => {
       this.currentTimeRange = range;
@@ -2204,6 +2230,28 @@ export class App {
     this.applyPanelSettings();
     this.applyInitialUrlState();
 
+  }
+
+  private initSidebarCollapse(): void {
+    const btn = document.getElementById('sidebarCollapseBtn');
+    const layout = document.getElementById('dashboardLayout');
+    if (!btn || !layout) return;
+
+    const collapsed = localStorage.getItem('sidebar-collapsed') === 'true';
+    if (collapsed) layout.classList.add('sidebar-collapsed');
+
+    btn.addEventListener('click', () => {
+      layout.classList.toggle('sidebar-collapsed');
+      localStorage.setItem(
+        'sidebar-collapsed',
+        layout.classList.contains('sidebar-collapsed') ? 'true' : 'false'
+      );
+      // Trigger map resize after transition
+      const sidebar = document.getElementById('sidebar');
+      sidebar?.addEventListener('transitionend', () => {
+        this.map?.render();
+      }, { once: true });
+    });
   }
 
   private applyInitialUrlState(): void {

@@ -1,6 +1,8 @@
 import { getCorsHeaders, isDisallowedOrigin } from './_cors.js';
+import { getCachedJson, setCachedJson, hashString } from './_upstash-cache.js';
 export const config = { runtime: 'edge' };
 
+const GDELT_CACHE_TTL = 300;
 const MAX_RECORDS = 20;
 const DEFAULT_RECORDS = 10;
 
@@ -23,6 +25,17 @@ export default async function handler(req) {
       headers: { 'Content-Type': 'application/json' },
     });
   }
+
+  const cacheKey = `gdelt-doc:${hashString(`${query}:${maxrecords}:${timespan}`)}`;
+  try {
+    const redisCached = await getCachedJson(cacheKey);
+    if (redisCached) {
+      return new Response(JSON.stringify(redisCached), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json', ...cors, 'Cache-Control': `public, max-age=${GDELT_CACHE_TTL}, s-maxage=${GDELT_CACHE_TTL}, stale-while-revalidate=60` },
+      });
+    }
+  } catch {}
 
   try {
     const gdeltUrl = new URL('https://api.gdeltproject.org/api/v2/doc/doc');
@@ -51,12 +64,15 @@ export default async function handler(req) {
       tone: article.tone,
     }));
 
-    return new Response(JSON.stringify({ articles, query }), {
+    const result = { articles, query };
+    setCachedJson(cacheKey, result, GDELT_CACHE_TTL).catch(() => {});
+
+    return new Response(JSON.stringify(result), {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
         ...cors,
-        'Cache-Control': 'public, max-age=300, s-maxage=300, stale-while-revalidate=60',
+        'Cache-Control': `public, max-age=${GDELT_CACHE_TTL}, s-maxage=${GDELT_CACHE_TTL}, stale-while-revalidate=60`,
       },
     });
   } catch (error) {

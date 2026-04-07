@@ -1,7 +1,9 @@
 export const config = { runtime: 'edge' };
 
 import { getCorsHeaders, isDisallowedOrigin } from './_cors.js';
+import { getCachedJson, setCachedJson } from './_upstash-cache.js';
 
+const CACHE_KEY = 'stablecoin-markets:v1';
 const CACHE_TTL = 120;
 let cachedResponse = null;
 let cacheTimestamp = 0;
@@ -44,6 +46,18 @@ export default async function handler(req) {
 
   const url = new URL(req.url);
   const rawCoins = url.searchParams.get('coins') || DEFAULT_COINS;
+  const cacheKey = `${CACHE_KEY}:${rawCoins}`;
+
+  try {
+    const redisCached = await getCachedJson(cacheKey);
+    if (redisCached) {
+      cachedResponse = redisCached;
+      cacheTimestamp = now;
+      return new Response(JSON.stringify(redisCached), {
+        headers: { ...cors, 'Content-Type': 'application/json', 'Cache-Control': `public, s-maxage=${CACHE_TTL}, stale-while-revalidate=300` },
+      });
+    }
+  } catch {}
   const coins = rawCoins.split(',').filter(c => /^[a-z0-9-]+$/.test(c)).join(',') || DEFAULT_COINS;
 
   try {
@@ -114,6 +128,7 @@ export default async function handler(req) {
 
     cachedResponse = result;
     cacheTimestamp = now;
+    setCachedJson(cacheKey, result, CACHE_TTL).catch(() => {});
 
     return new Response(JSON.stringify(result), {
       headers: { ...cors, 'Content-Type': 'application/json', 'Cache-Control': `public, s-maxage=${CACHE_TTL}, stale-while-revalidate=300` },

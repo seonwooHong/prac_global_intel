@@ -8,10 +8,13 @@
  */
 
 import { getCorsHeaders, isDisallowedOrigin } from './_cors.js';
+import { getCachedJson, setCachedJson } from './_upstash-cache.js';
 
 export const config = {
   runtime: 'edge',
 };
+
+const FIRMS_CACHE_TTL = 600;
 
 const FIRMS_API_KEY = process.env.NASA_FIRMS_API_KEY || process.env.FIRMS_API_KEY || '';
 const FIRMS_BASE = 'https://firms.modaps.eosdis.nasa.gov/api/area/csv';
@@ -94,10 +97,14 @@ export default async function handler(request) {
       return json({ error: `Unknown region: ${regionName}` }, 400);
     }
 
+    const cacheKey = `firms:${regionName || 'all'}:${days}`;
+    try {
+      const redisCached = await getCachedJson(cacheKey);
+      if (redisCached) return json(redisCached);
+    } catch {}
+
     const allFires = {};
     let totalCount = 0;
-
-    // Fetch regions in parallel (max 10)
     const entries = Object.entries(regions);
     const results = await Promise.allSettled(
       entries.map(async ([name, { bbox }]) => {
@@ -121,13 +128,15 @@ export default async function handler(request) {
       }
     }
 
-    return json({
+    const result = {
       regions: allFires,
       totalCount,
       source: SOURCE,
       days,
       timestamp: new Date().toISOString(),
-    });
+    };
+    setCachedJson(cacheKey, result, FIRMS_CACHE_TTL).catch(() => {});
+    return json(result);
   } catch (err) {
     console.error('[FIRMS] Error:', err);
     return json({ error: 'Failed to fetch fire data' }, 500);

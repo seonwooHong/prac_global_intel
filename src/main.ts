@@ -1,7 +1,21 @@
 import './styles/main.css';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import * as Sentry from '@sentry/browser';
 import { inject } from '@vercel/analytics';
 import { App } from './App';
+
+// Initialize Sentry error tracking
+Sentry.init({
+  dsn: 'https://964417d2274f76ed23009254865ec986@o4511172254957568.ingest.us.sentry.io/4511172276191232',
+  environment: import.meta.env.MODE,
+  release: __APP_VERSION__,
+  tracesSampleRate: 0.1,
+  ignoreErrors: [
+    'NotAllowedError',
+    'ResizeObserver loop',
+    'Network request failed',
+  ],
+});
 // Suppress NotAllowedError from YouTube IFrame API's internal play() — browser autoplay policy,
 // not actionable. The YT IFrame API doesn't expose the play() promise so it leaks as unhandled.
 window.addEventListener('unhandledrejection', (e) => {

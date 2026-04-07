@@ -1,9 +1,13 @@
 import { Panel } from './Panel';
 import type { PredictionMarket } from '@/types';
 import { escapeHtml, sanitizeUrl } from '@/utils/sanitize';
-import { t } from '@/services/i18n';
+import { t, getCurrentLanguage } from '@/services/i18n';
+import { translateText } from '@/services';
 
 export class PredictionPanel extends Panel {
+  /** In-memory translation cache keyed by `lang:title` */
+  private translationCache = new Map<string, string>();
+
   constructor() {
     super({
       id: 'polymarket',
@@ -33,8 +37,8 @@ export class PredictionPanel extends Panel {
 
         const safeUrl = sanitizeUrl(p.url || '');
         const titleHtml = safeUrl
-          ? `<a href="${safeUrl}" target="_blank" rel="noopener" class="prediction-question prediction-link">${escapeHtml(p.title)}</a>`
-          : `<div class="prediction-question">${escapeHtml(p.title)}</div>`;
+          ? `<a href="${safeUrl}" target="_blank" rel="noopener" class="prediction-question prediction-link" data-original-title="${escapeHtml(p.title)}">${escapeHtml(p.title)}</a>`
+          : `<div class="prediction-question" data-original-title="${escapeHtml(p.title)}">${escapeHtml(p.title)}</div>`;
 
         return `
       <div class="prediction-item">
@@ -54,5 +58,39 @@ export class PredictionPanel extends Panel {
       .join('');
 
     this.setContent(html);
+
+    // Auto-translate prediction titles when not in English
+    const currentLang = getCurrentLanguage();
+    if (currentLang !== 'en') {
+      this.translatePredictionTitles(currentLang);
+    }
+  }
+
+  private async translatePredictionTitles(lang: string): Promise<void> {
+    const questionEls = this.content.querySelectorAll<HTMLElement>('.prediction-question');
+
+    const promises = Array.from(questionEls).map(async (el) => {
+      const originalTitle = el.dataset.originalTitle;
+      if (!originalTitle) return;
+
+      const cacheKey = `${lang}:${originalTitle}`;
+      const cached = this.translationCache.get(cacheKey);
+      if (cached) {
+        el.textContent = cached;
+        return;
+      }
+
+      try {
+        const translated = await translateText(originalTitle, lang);
+        if (translated) {
+          this.translationCache.set(cacheKey, translated);
+          el.textContent = translated;
+        }
+      } catch {
+        // Translation failed, keep original text
+      }
+    });
+
+    await Promise.allSettled(promises);
   }
 }

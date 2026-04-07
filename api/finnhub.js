@@ -1,6 +1,8 @@
 import { getCorsHeaders, isDisallowedOrigin } from './_cors.js';
+import { getCachedJson, setCachedJson } from './_upstash-cache.js';
 export const config = { runtime: 'edge' };
 
+const FH_CACHE_TTL = 30;
 const SYMBOL_PATTERN = /^[A-Za-z0-9.^]+$/;
 const MAX_SYMBOLS = 20;
 const MAX_SYMBOL_LENGTH = 10;
@@ -92,17 +94,30 @@ export default async function handler(req) {
     });
   }
 
+  const cacheKey = `finnhub:${symbols.join(',')}`;
   try {
-    // Fetch all quotes in parallel (Finnhub allows 60 req/min on free tier)
+    const redisCached = await getCachedJson(cacheKey);
+    if (redisCached) {
+      return new Response(JSON.stringify(redisCached), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': `public, max-age=${FH_CACHE_TTL}, s-maxage=${FH_CACHE_TTL}, stale-while-revalidate=15`, ...corsHeaders },
+      });
+    }
+  } catch {}
+
+  try {
     const quotes = await Promise.all(
       symbols.map(symbol => fetchQuote(symbol, apiKey))
     );
 
-    return new Response(JSON.stringify({ quotes }), {
+    const result = { quotes };
+    setCachedJson(cacheKey, result, FH_CACHE_TTL).catch(() => {});
+
+    return new Response(JSON.stringify(result), {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Cache-Control': 'public, max-age=30, s-maxage=30, stale-while-revalidate=15',
+        'Cache-Control': `public, max-age=${FH_CACHE_TTL}, s-maxage=${FH_CACHE_TTL}, stale-while-revalidate=15`,
         ...corsHeaders,
       },
     });

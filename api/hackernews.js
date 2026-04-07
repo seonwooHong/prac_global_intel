@@ -1,9 +1,9 @@
 export const config = { runtime: 'edge' };
 
 import { getCorsHeaders, isDisallowedOrigin } from './_cors.js';
+import { getCachedJson, setCachedJson } from './_upstash-cache.js';
 
-// Fetch Hacker News front page stories
-// Uses official HackerNews Firebase API
+const HN_CACHE_TTL = 300;
 const ALLOWED_STORY_TYPES = new Set(['top', 'new', 'best', 'ask', 'show', 'job']);
 const DEFAULT_LIMIT = 30;
 const MAX_LIMIT = 60;
@@ -25,6 +25,17 @@ export default async function handler(request) {
     const requestedType = searchParams.get('type') || 'top';
     const storyType = ALLOWED_STORY_TYPES.has(requestedType) ? requestedType : 'top';
     const limit = parseLimit(searchParams.get('limit'));
+
+    const cacheKey = `hackernews:${storyType}:${limit}`;
+    try {
+      const redisCached = await getCachedJson(cacheKey);
+      if (redisCached) {
+        return new Response(JSON.stringify(redisCached), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json', ...cors, 'Cache-Control': `public, max-age=${HN_CACHE_TTL}, s-maxage=${HN_CACHE_TTL}, stale-while-revalidate=60` },
+        });
+      }
+    } catch {}
 
     // HackerNews official Firebase API
     const storiesUrl = `https://hacker-news.firebaseio.com/v0/${storyType}stories.json`;
@@ -67,17 +78,21 @@ export default async function handler(request) {
       stories.push(...batchResults.filter((story) => story !== null));
     }
 
-    return new Response(JSON.stringify({
+    const result = {
       type: storyType,
       stories: stories,
       total: stories.length,
       timestamp: new Date().toISOString()
-    }), {
+    };
+
+    setCachedJson(cacheKey, result, HN_CACHE_TTL).catch(() => {});
+
+    return new Response(JSON.stringify(result), {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
         ...cors,
-        'Cache-Control': 'public, max-age=300, s-maxage=300, stale-while-revalidate=60', // 5 min cache
+        'Cache-Control': `public, max-age=${HN_CACHE_TTL}, s-maxage=${HN_CACHE_TTL}, stale-while-revalidate=60`,
       },
     });
   } catch (error) {

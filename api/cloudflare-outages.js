@@ -1,5 +1,8 @@
 import { getCorsHeaders, isDisallowedOrigin } from './_cors.js';
+import { getCachedJson, setCachedJson } from './_upstash-cache.js';
 export const config = { runtime: 'edge' };
+
+const CF_CACHE_TTL = 120;
 
 function clampLimit(rawLimit) {
   const parsed = Number.parseInt(rawLimit || '', 10);
@@ -44,15 +47,27 @@ export default async function handler(req) {
     });
   }
 
+  const cacheKey = `cf-outages:${dateRange}:${limit}`;
+  try {
+    const redisCached = await getCachedJson(cacheKey);
+    if (redisCached) {
+      return new Response(JSON.stringify(redisCached), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': `public, max-age=${CF_CACHE_TTL}, s-maxage=${CF_CACHE_TTL}, stale-while-revalidate=60`, ...corsHeaders },
+      });
+    }
+  } catch {}
+
   try {
     const response = await fetch(
       `https://api.cloudflare.com/client/v4/radar/annotations/outages?dateRange=${dateRange}&limit=${limit}`,
       { headers: { 'Authorization': `Bearer ${token}` } }
     );
-    const data = await response.text();
-    return new Response(data, {
-      status: response.status,
-      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=120, s-maxage=120, stale-while-revalidate=60', ...corsHeaders },
+    const data = await response.json();
+    setCachedJson(cacheKey, data, CF_CACHE_TTL).catch(() => {});
+    return new Response(JSON.stringify(data), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': `public, max-age=${CF_CACHE_TTL}, s-maxage=${CF_CACHE_TTL}, stale-while-revalidate=60`, ...corsHeaders },
     });
   } catch (error) {
     // Return empty result on error so client circuit breaker doesn't trigger unnecessarily

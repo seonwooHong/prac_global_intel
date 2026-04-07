@@ -1,7 +1,9 @@
 export const config = { runtime: 'edge' };
 
 import { getCorsHeaders, isDisallowedOrigin } from './_cors.js';
+import { getCachedJson, setCachedJson } from './_upstash-cache.js';
 
+const CACHE_KEY = 'macro-signals:v1';
 const CACHE_TTL = 300;
 let cachedResponse = null;
 let cacheTimestamp = 0;
@@ -113,6 +115,18 @@ export default async function handler(req) {
       headers: { ...cors, 'Content-Type': 'application/json', 'Cache-Control': `public, s-maxage=${CACHE_TTL}, stale-while-revalidate=600` },
     });
   }
+
+  // L2: Redis cache
+  try {
+    const redisCached = await getCachedJson(CACHE_KEY);
+    if (redisCached) {
+      cachedResponse = redisCached;
+      cacheTimestamp = now;
+      return new Response(JSON.stringify(redisCached), {
+        headers: { ...cors, 'Content-Type': 'application/json', 'Cache-Control': `public, s-maxage=${CACHE_TTL}, stale-while-revalidate=600` },
+      });
+    }
+  } catch {}
 
   try {
     const yahooBase = 'https://query1.finance.yahoo.com/v8/finance/chart';
@@ -268,6 +282,7 @@ export default async function handler(req) {
 
     cachedResponse = result;
     cacheTimestamp = now;
+    setCachedJson(CACHE_KEY, result, CACHE_TTL).catch(() => {});
 
     return new Response(JSON.stringify(result), {
       headers: { ...cors, 'Content-Type': 'application/json', 'Cache-Control': `public, s-maxage=${CACHE_TTL}, stale-while-revalidate=600` },

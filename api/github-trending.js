@@ -1,9 +1,10 @@
 export const config = { runtime: 'edge' };
 
 import { getCorsHeaders, isDisallowedOrigin } from './_cors.js';
+import { getCachedJson, setCachedJson } from './_upstash-cache.js';
 
-// Fetch trending GitHub repositories
-// Uses unofficial GitHub trending scraper API
+const GH_CACHE_TTL = 1800;
+
 export default async function handler(request) {
   const cors = getCorsHeaders(request);
   if (isDisallowedOrigin(request)) {
@@ -11,9 +12,9 @@ export default async function handler(request) {
   }
   try {
     const { searchParams } = new URL(request.url);
-    const language = searchParams.get('language') || 'python'; // python, javascript, typescript, etc.
-    const since = searchParams.get('since') || 'daily'; // daily, weekly, monthly
-    const spoken_language = searchParams.get('spoken_language') || ''; // en, zh, etc.
+    const language = searchParams.get('language') || 'python';
+    const since = searchParams.get('since') || 'daily';
+    const spoken_language = searchParams.get('spoken_language') || '';
 
     // Using GitHub trending API (unofficial)
     // Alternative: https://gh-trending-api.herokuapp.com/repositories
@@ -26,6 +27,17 @@ export default async function handler(request) {
     if (spoken_language) {
       queryParams.append('spoken_language_code', spoken_language);
     }
+
+    const cacheKey = `github-trending:${language}:${since}:${spoken_language}`;
+    try {
+      const redisCached = await getCachedJson(cacheKey);
+      if (redisCached) {
+        return new Response(JSON.stringify(redisCached), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json', ...cors, 'Cache-Control': `public, max-age=${GH_CACHE_TTL}, s-maxage=${GH_CACHE_TTL}, stale-while-revalidate=300` },
+        });
+      }
+    } catch {}
 
     const apiUrl = `${baseUrl}?${queryParams.toString()}`;
 
@@ -52,24 +64,26 @@ export default async function handler(request) {
       }
 
       const data = await fallbackResponse.json();
+      setCachedJson(cacheKey, data, GH_CACHE_TTL).catch(() => {});
       return new Response(JSON.stringify(data), {
         status: 200,
         headers: {
           'Content-Type': 'application/json',
           ...cors,
-          'Cache-Control': 'public, max-age=1800, s-maxage=1800, stale-while-revalidate=300', // 30 min cache
+          'Cache-Control': `public, max-age=${GH_CACHE_TTL}, s-maxage=${GH_CACHE_TTL}, stale-while-revalidate=300`,
         },
       });
     }
 
     const data = await response.json();
+    setCachedJson(cacheKey, data, GH_CACHE_TTL).catch(() => {});
 
     return new Response(JSON.stringify(data), {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
         ...cors,
-        'Cache-Control': 'public, max-age=1800, s-maxage=1800, stale-while-revalidate=300', // 30 min cache
+        'Cache-Control': `public, max-age=${GH_CACHE_TTL}, s-maxage=${GH_CACHE_TTL}, stale-while-revalidate=300`,
       },
     });
   } catch (error) {

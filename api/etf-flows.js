@@ -1,7 +1,9 @@
 export const config = { runtime: 'edge' };
 
 import { getCorsHeaders, isDisallowedOrigin } from './_cors.js';
+import { getCachedJson, setCachedJson } from './_upstash-cache.js';
 
+const CACHE_KEY = 'etf-flows:v1';
 const CACHE_TTL = 900;
 let cachedResponse = null;
 let cacheTimestamp = 0;
@@ -114,6 +116,17 @@ export default async function handler(req) {
   }
 
   try {
+    const redisCached = await getCachedJson(CACHE_KEY);
+    if (redisCached) {
+      cachedResponse = redisCached;
+      cacheTimestamp = now;
+      return new Response(JSON.stringify(redisCached), {
+        headers: { ...cors, 'Content-Type': 'application/json', 'Cache-Control': `public, s-maxage=${CACHE_TTL}, stale-while-revalidate=1800` },
+      });
+    }
+  } catch {}
+
+  try {
     const charts = await Promise.allSettled(
       ETF_LIST.map(etf => fetchChart(etf.ticker))
     );
@@ -147,6 +160,7 @@ export default async function handler(req) {
 
     cachedResponse = result;
     cacheTimestamp = now;
+    setCachedJson(CACHE_KEY, result, CACHE_TTL).catch(() => {});
 
     return new Response(JSON.stringify(result), {
       headers: { ...cors, 'Content-Type': 'application/json', 'Cache-Control': `public, s-maxage=${CACHE_TTL}, stale-while-revalidate=1800` },
