@@ -2295,24 +2295,6 @@ export class App {
     }
   }
 
-  private getSavedPanelOrder(): string[] {
-    try {
-      const saved = localStorage.getItem(this.PANEL_ORDER_KEY);
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  }
-
-  private savePanelOrder(): void {
-    const grid = document.getElementById('panelsGrid');
-    if (!grid) return;
-    const order = Array.from(grid.children)
-      .map((el) => (el as HTMLElement).dataset.panel)
-      .filter((key): key is string => !!key);
-    localStorage.setItem(this.PANEL_ORDER_KEY, JSON.stringify(order));
-  }
-
   private attachRelatedAssetHandlers(panel: NewsPanel): void {
     panel.setRelatedAssetHandlers({
       onRelatedAssetClick: (asset) => this.handleRelatedAssetClick(asset),
@@ -2356,53 +2338,6 @@ export class App {
         this.map.triggerNuclearClick(asset.id);
         break;
     }
-  }
-
-  private makeDraggable(el: HTMLElement, key: string): void {
-    el.draggable = true;
-    el.dataset.panel = key;
-
-    el.addEventListener('dragstart', (e) => {
-      const target = e.target as HTMLElement;
-      // Don't start drag if panel is being resized
-      if (el.dataset.resizing === 'true') {
-        e.preventDefault();
-        return;
-      }
-      // Don't start drag if target is the resize handle
-      if (target.classList?.contains('panel-resize-handle') || target.closest?.('.panel-resize-handle')) {
-        e.preventDefault();
-        return;
-      }
-      el.classList.add('dragging');
-      e.dataTransfer?.setData('text/plain', key);
-    });
-
-    el.addEventListener('dragend', () => {
-      el.classList.remove('dragging');
-      this.savePanelOrder();
-    });
-
-    el.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      const dragging = document.querySelector('.dragging');
-      if (!dragging || dragging === el) return;
-
-      const grid = document.getElementById('panelsGrid');
-      if (!grid) return;
-
-      const siblings = Array.from(grid.children).filter((c) => c !== dragging);
-      const nextSibling = siblings.find((sibling) => {
-        const rect = sibling.getBoundingClientRect();
-        return e.clientY < rect.top + rect.height / 2;
-      });
-
-      if (nextSibling) {
-        grid.insertBefore(dragging, nextSibling);
-      } else {
-        grid.appendChild(dragging);
-      }
-    });
   }
 
   private setupEventListeners(): void {

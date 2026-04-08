@@ -1,4 +1,5 @@
 import { defineConfig, type Plugin } from 'vite';
+import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 import pkg from './package.json';
 
@@ -112,6 +113,7 @@ export default defineConfig({
     __APP_VERSION__: JSON.stringify(pkg.version),
   },
   plugins: [
+    react(),
     htmlVariantPlugin(),
     youtubeLivePlugin(),
   ],
