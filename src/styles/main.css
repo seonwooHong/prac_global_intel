@@ -257,7 +257,8 @@ canvas,
   transition: none !important;
 }
 
-#app {
+#app,
+.app-wrapper {
   height: 100%;
   width: 100%;
   min-height: 100vh;
@@ -511,12 +512,7 @@ canvas,
   transform: rotate(180deg);
 }
 
-/* === Right scroll column (wrapper for content-row-middle + panels-grid) === */
-.right-scroll-column {
-  display: contents; /* transparent in normal layout */
-}
-
-/* Collapsed layout: map pinned left, right column scrollable */
+/* ── Collapsed: map left 60%, right column 40% scrollable ── */
 .sidebar-collapsed .main-area {
   flex-direction: row;
   overflow: hidden;
@@ -530,39 +526,108 @@ canvas,
 }
 
 .sidebar-collapsed .main-area .right-scroll-column {
-  display: flex;
-  flex-direction: column;
   flex: 0 0 40%;
   height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
+}
+
+/* Collapsed panels: Live News spans full width, then 2 cols */
+.sidebar-collapsed .panels-grid {
+  grid-template-columns: repeat(2, 1fr);
+  grid-auto-rows: minmax(140px, 266px);
+}
+
+.sidebar-collapsed .panel-live-news {
+  grid-column: 1 / -1;  /* full width */
+  grid-row: span 2;
+}
+
+/* ── Small screen (13 inch, ≤1440px) ── */
+@media (max-width: 1440px) {
+  /* Map taller on small screen */
+  .main-area .map-section {
+    height: 63vh;  /* 45vh * 1.4 = 63vh */
+    min-height: 420px;
+  }
+
+  /* Sidebar open: map full width row 1, then 3 cols */
+  .panels-grid {
+    grid-template-columns: repeat(3, 1fr);
+    grid-auto-rows: minmax(140px, 266px);
+  }
+
+  /* Live News takes 2/3 width, 4 rows tall */
+  .panel-live-news {
+    grid-column: span 2;
+    grid-row: span 4;
+  }
+
+  /* Sidebar collapsed on small screen */
+  .sidebar-collapsed .main-area {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .sidebar-collapsed .main-area .map-section {
+    flex: none;
+    width: 100%;
+    height: 63vh;
+  }
+
+  .sidebar-collapsed .main-area .right-scroll-column {
+    flex: none;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  /* Collapsed small: Live News 50%, side panels 50% (2 cols), then 4 cols below */
+  .sidebar-collapsed .panels-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .sidebar-collapsed .panel-live-news {
+    grid-column: span 2;
+    grid-row: span 3;
+    min-height: auto;
+  }
+}
+
+/* ── Map pinned (only when sidebar expanded) ── */
+/* Pin has no effect when collapsed — map is always fixed left */
+.map-pinned:not(.sidebar-collapsed) .main-area {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.map-pinned:not(.sidebar-collapsed) .main-area .map-section {
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.map-pinned:not(.sidebar-collapsed) .main-area .right-scroll-column {
+  flex: 1;
+  overflow-y: auto;
   min-height: 0;
 }
 
-.sidebar-collapsed .main-area .content-row-middle {
-  flex-direction: column;
-  flex-shrink: 0;
+/* Pin button: hidden when sidebar collapsed */
+.sidebar-collapsed .map-pin-btn {
+  display: none;
 }
 
-.sidebar-collapsed .main-area .content-row-middle .middle-left {
-  flex: unset;
-  width: 100%;
+/* Pin button active state */
+.map-pin-btn.pinned {
+  color: var(--accent, #4a9eff);
+  background: rgba(74, 158, 255, 0.1);
+  border-radius: 4px;
 }
 
-.sidebar-collapsed .main-area .content-row-middle .middle-right {
-  flex: unset;
-  width: 100%;
-  grid-template-columns: repeat(2, 1fr);
-  grid-template-rows: repeat(3, minmax(140px, 266px));
-}
-
-.sidebar-collapsed .main-area .panels-grid {
-  grid-template-columns: repeat(2, 1fr);
-  grid-auto-rows: minmax(140px, 266px);
-  flex-shrink: 0;
-}
-
-/* --- Main Content Area --- */
+/* === Main Content Area === */
 .main-area {
   flex: 1;
   display: flex;
@@ -573,33 +638,32 @@ canvas,
 
 .main-area .map-section {
   flex-shrink: 0;
-  height: 45vh;
-  min-height: 300px;
+  height: 76.5vh; /* 45vh * 1.7 */
+  min-height: 510px;
 }
 
-/* --- Row 2: Live News + 2x3 Side Panel Grid --- */
-.content-row-middle {
-  display: flex;
-  gap: 4px;
+/* === Right scroll column === */
+/* Default (sidebar expanded, unpinned): no own scroll — flows with main-area */
+.right-scroll-column {
   flex-shrink: 0;
-  padding: 4px;
 }
 
-.content-row-middle .middle-left {
-  flex: 55;
-  min-width: 0;
-  overflow: hidden;
-}
-
-.content-row-middle .middle-left .panel {
-  height: 100%;
-  max-height: none;
-}
-
-.content-row-middle .middle-right {
-  flex: 45;
+/* === Panels Grid === */
+/* Default (sidebar open, normal screen): 4 columns */
+/* Live News spans 2 cols, 3 rows. Other panels fill 1x1. */
+.panels-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: minmax(140px, 266px);
+  grid-auto-flow: row dense;
+  gap: 4px;
+  padding: 4px;
+  align-content: start;
+}
+
+.panel-live-news {
+  grid-column: span 2;
+  grid-row: span 3;
   grid-template-rows: repeat(3, minmax(140px, 266px));
   gap: 4px;
   min-width: 0;
