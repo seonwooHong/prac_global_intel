@@ -1735,11 +1735,13 @@ export class App {
             </div>
             <div class="map-container" id="mapContainer"></div>
           </div>
-          <div class="content-row-middle" id="contentRowMiddle">
-            <div class="middle-left" id="liveNewsMount"></div>
-            <div class="middle-right" id="middleRightPanels"></div>
+          <div class="right-scroll-column" id="rightScrollColumn">
+            <div class="content-row-middle" id="contentRowMiddle">
+              <div class="middle-left" id="liveNewsMount"></div>
+              <div class="middle-right" id="middleRightPanels"></div>
+            </div>
+            <div class="panels-grid" id="panelsGrid"></div>
           </div>
-          <div class="panels-grid" id="panelsGrid"></div>
         </main>
       </div>
       <div class="app-footer">
