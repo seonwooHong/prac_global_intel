@@ -1,5 +1,6 @@
 import { createCircuitBreaker, getCSSColor } from '@/utils';
 import type { ClimateAnomaly } from '@/types';
+import { apiUrl } from '@/utils/api';
 
 interface ClimateResponse {
   success: boolean;
@@ -17,7 +18,7 @@ const breaker = createCircuitBreaker<ClimateResponse>({ name: 'Climate Anomalies
 
 export async function fetchClimateAnomalies(): Promise<ClimateFetchResult> {
   const result = await breaker.execute(async () => {
-    const response = await fetch('/api/climate-anomalies', {
+    const response = await fetch(apiUrl('/api/climate-anomalies'), {
       headers: { Accept: 'application/json' },
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);

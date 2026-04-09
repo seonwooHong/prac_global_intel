@@ -1,5 +1,6 @@
 import { createCircuitBreaker } from '@/utils';
 import { isFeatureAvailable } from './runtime-config';
+import { apiUrl } from '@/utils/api';
 
 export type ConflictEventType = 'battle' | 'explosion' | 'remote_violence' | 'violence_against_civilians';
 
@@ -57,7 +58,7 @@ async function fetchAcledConflictEvents(): Promise<ConflictEvent[]> {
   if (!isFeatureAvailable('acledConflicts')) return [];
 
   return conflictBreaker.execute(async () => {
-    const response = await fetch('/api/acled-conflict', {
+    const response = await fetch(apiUrl('/api/acled-conflict'), {
       headers: { Accept: 'application/json' },
     });
 

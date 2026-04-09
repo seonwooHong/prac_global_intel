@@ -1,5 +1,6 @@
 import { createCircuitBreaker } from '@/utils';
 import type { CountryPopulation, PopulationExposure } from '@/types';
+import { apiUrl } from '@/utils/api';
 
 interface CountriesResponse {
   success: boolean;
@@ -18,7 +19,7 @@ const countriesBreaker = createCircuitBreaker<CountriesResponse>({ name: 'WorldP
 
 export async function fetchCountryPopulations(): Promise<CountryPopulation[]> {
   const result = await countriesBreaker.execute(async () => {
-    const response = await fetch('/api/worldpop-exposure?mode=countries', {
+    const response = await fetch(apiUrl('/api/worldpop-exposure?mode=countries'), {
       headers: { Accept: 'application/json' },
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);

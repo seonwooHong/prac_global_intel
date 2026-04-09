@@ -8,6 +8,7 @@ import { mlWorker } from './ml-worker';
 import { SITE_VARIANT } from '@/config';
 import { BETA_MODE } from '@/config/beta';
 import { isFeatureAvailable } from './runtime-config';
+import { apiUrl } from '@/utils/api';
 
 export type SummarizationProvider = 'groq' | 'openrouter' | 'browser' | 'cache';
 
@@ -22,7 +23,7 @@ export type ProgressCallback = (step: number, total: number, message: string) =>
 async function tryGroq(headlines: string[], geoContext?: string, lang?: string): Promise<SummarizationResult | null> {
   if (!isFeatureAvailable('aiGroq')) return null;
   try {
-    const response = await fetch('/api/groq-summarize', {
+    const response = await fetch(apiUrl('/api/groq-summarize'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ headlines, mode: 'brief', geoContext, variant: SITE_VARIANT, lang }),
@@ -51,7 +52,7 @@ async function tryGroq(headlines: string[], geoContext?: string, lang?: string):
 async function tryOpenRouter(headlines: string[], geoContext?: string, lang?: string): Promise<SummarizationResult | null> {
   if (!isFeatureAvailable('aiOpenRouter')) return null;
   try {
-    const response = await fetch('/api/openrouter-summarize', {
+    const response = await fetch(apiUrl('/api/openrouter-summarize'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ headlines, mode: 'brief', geoContext, variant: SITE_VARIANT, lang }),
@@ -222,7 +223,7 @@ export async function translateText(
   if (isFeatureAvailable('aiGroq')) {
     onProgress?.(1, 2, 'Translating with Groq...');
     try {
-      const response = await fetch('/api/groq-summarize', {
+      const response = await fetch(apiUrl('/api/groq-summarize'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -245,7 +246,7 @@ export async function translateText(
   if (isFeatureAvailable('aiOpenRouter')) {
     onProgress?.(2, 2, 'Translating with OpenRouter...');
     try {
-      const response = await fetch('/api/openrouter-summarize', {
+      const response = await fetch(apiUrl('/api/openrouter-summarize'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

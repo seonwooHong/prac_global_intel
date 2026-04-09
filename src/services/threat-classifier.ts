@@ -1,3 +1,5 @@
+import { apiUrl } from '@/utils/api';
+
 export type ThreatLevel = 'critical' | 'high' | 'medium' | 'low' | 'info';
 
 export type EventCategory =
@@ -305,7 +307,7 @@ function flushBatch(): void {
   const variant = batch[0]!.variant;
   const titles = batch.map(j => j.title);
 
-  fetch('/api/classify-batch', {
+  fetch(apiUrl('/api/classify-batch'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ titles, variant }),

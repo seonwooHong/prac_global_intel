@@ -1,5 +1,6 @@
 import type { PredictionMarket } from '@/types';
 import { createCircuitBreaker } from '@/utils';
+import { apiUrl } from '@/utils/api';
 
 interface PolymarketMarket {
   question: string;
@@ -112,7 +113,7 @@ async function polyFetch(endpoint: 'events' | 'markets', params: Record<string, 
 
   // Try Vercel edge function
   try {
-    const resp = await fetch(`/api/polymarket?${proxyQs}`);
+    const resp = await fetch(apiUrl(`/api/polymarket?${proxyQs}`));
     if (resp.ok) {
       const data = await resp.clone().json();
       if (Array.isArray(data) && data.length > 0) return resp;

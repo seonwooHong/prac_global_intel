@@ -1,4 +1,5 @@
 import { isDesktopRuntime, getRemoteApiBaseUrl } from '@/services/runtime';
+import { apiUrl } from '@/utils/api';
 
 const liveVideoCache = new Map<string, { videoId: string | null; timestamp: number }>();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
@@ -11,7 +12,7 @@ export async function fetchLiveVideoId(channelHandle: string): Promise<string | 
 
   try {
     const baseUrl = isDesktopRuntime() ? getRemoteApiBaseUrl() : '';
-    const res = await fetch(`${baseUrl}/api/youtube/live?channel=${encodeURIComponent(channelHandle)}`);
+    const res = await fetch(apiUrl(`${baseUrl}/api/youtube/live?channel=${encodeURIComponent(channelHandle)}`));
     if (!res.ok) throw new Error('API error');
     const data = await res.json();
     const videoId = data.videoId || null;

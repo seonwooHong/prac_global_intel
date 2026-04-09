@@ -1,4 +1,5 @@
 import { createCircuitBreaker } from '@/utils';
+import { apiUrl } from '@/utils/api';
 
 export type ConflictIntensity = 'none' | 'minor' | 'war';
 
@@ -59,7 +60,7 @@ const ucdpBreaker = createCircuitBreaker<Map<string, UcdpConflictStatus>>({ name
 
 export async function fetchUcdpClassifications(): Promise<Map<string, UcdpConflictStatus>> {
   return ucdpBreaker.execute(async () => {
-    const response = await fetch('/api/ucdp', {
+    const response = await fetch(apiUrl('/api/ucdp'), {
       headers: { Accept: 'application/json' },
     });
 

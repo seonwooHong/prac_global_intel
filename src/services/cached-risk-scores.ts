@@ -7,6 +7,7 @@
 import type { CountryScore, ComponentScores } from './country-instability';
 import { setHasCachedScores } from './country-instability';
 import { getPersistentCache, setPersistentCache } from './persistent-cache';
+import { apiUrl } from '@/utils/api';
 
 export interface CachedCIIScore {
   code: string;
@@ -64,7 +65,7 @@ export async function fetchCachedRiskScores(): Promise<CachedRiskScores | null> 
 
   fetchPromise = (async () => {
     try {
-      const response = await fetch('/api/risk-scores');
+      const response = await fetch(apiUrl('/api/risk-scores'));
       if (!response.ok) {
         console.warn('[CachedRiskScores] API error:', response.status);
         return cachedScores ?? await loadPersistentRiskScores();
