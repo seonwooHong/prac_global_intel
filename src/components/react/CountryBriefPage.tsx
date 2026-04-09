@@ -4,7 +4,7 @@ import { t } from '@/services/i18n';
 import { getCSSColor } from '@/utils';
 import type { CountryScore } from '@/services/country-instability';
 import type { PredictionMarket, NewsItem } from '@/types';
-import type { StockIndexData } from '@/components/CountryIntelModal';
+interface StockIndexData { symbol: string; name: string; price: number; change: number; sparkline?: number[]; available?: boolean; weekChangePercent?: number; indexName?: string; }
 
 interface CountryBriefSignals {
   protests: number;
@@ -184,11 +184,11 @@ export const CountryBriefPage: React.FC<CountryBriefPageProps> = ({
     if (signals.conflictEvents > 0) chips.push(<span key="ce" className="signal-chip conflict">{'\u2694\uFE0F'} {signals.conflictEvents} {t('modals.countryBrief.signals.conflictEvents')}</span>);
 
     if (stockData?.available) {
-      const pct = parseFloat(stockData.weekChangePercent);
+      const pct = parseFloat(String(stockData.weekChangePercent ?? 0));
       const sign = pct >= 0 ? '+' : '';
       const cls = pct >= 0 ? 'stock-up' : 'stock-down';
       const arrow = pct >= 0 ? '\u{1F4C8}' : '\u{1F4C9}';
-      chips.push(<span key="stock" className={`signal-chip stock ${cls}`}>{arrow} {escapeHtml(stockData.indexName)}: {sign}{stockData.weekChangePercent}% (1W)</span>);
+      chips.push(<span key="stock" className={`signal-chip stock ${cls}`}>{arrow} {escapeHtml(stockData.indexName ?? '')}: {sign}{stockData.weekChangePercent}% (1W)</span>);
     } else if (!stockData) {
       chips.push(<span key="stockload" className="signal-chip stock-loading">{'\u{1F4C8}'} {t('modals.countryBrief.loadingIndex')}</span>);
     }
