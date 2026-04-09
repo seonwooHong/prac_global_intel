@@ -7,7 +7,7 @@
 import type { CountryScore, ComponentScores } from './country-instability';
 import { setHasCachedScores } from './country-instability';
 import { getPersistentCache, setPersistentCache } from './persistent-cache';
-import { apiUrl } from '@/utils/api';
+import { rpc } from '@/utils/rpc-client';
 
 export interface CachedCIIScore {
   code: string;
@@ -65,13 +65,7 @@ export async function fetchCachedRiskScores(): Promise<CachedRiskScores | null> 
 
   fetchPromise = (async () => {
     try {
-      const response = await fetch(apiUrl('/api/risk-scores'));
-      if (!response.ok) {
-        console.warn('[CachedRiskScores] API error:', response.status);
-        return cachedScores ?? await loadPersistentRiskScores();
-      }
-
-      const data = await response.json();
+      const data = await rpc.riskScores();
       cachedScores = data;
       lastFetchTime = now;
       setHasCachedScores(true);

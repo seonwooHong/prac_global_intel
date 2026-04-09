@@ -1,6 +1,6 @@
 import { createCircuitBreaker, getCSSColor } from '@/utils';
 import type { UnhcrSummary, CountryDisplacement } from '@/types';
-import { apiUrl } from '@/utils/api';
+import { rpc } from '@/utils/rpc-client';
 
 interface UnhcrApiResponse extends UnhcrSummary {
   success: boolean;
@@ -24,11 +24,7 @@ const emptyResult: UnhcrSummary = {
 
 export async function fetchUnhcrPopulation(): Promise<UnhcrFetchResult> {
   const result = await breaker.execute(async () => {
-    const response = await fetch(apiUrl('/api/unhcr-population'), {
-      headers: { Accept: 'application/json' },
-    });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const data = await response.json();
+    const data = await rpc.unhcrPopulation();
     if (!data.success) throw new Error('UNHCR API returned failure');
     return data as UnhcrApiResponse;
   }, { success: false, ...emptyResult });

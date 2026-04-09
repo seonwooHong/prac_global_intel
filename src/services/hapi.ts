@@ -1,5 +1,5 @@
 import { createCircuitBreaker } from '@/utils';
-import { apiUrl } from '@/utils/api';
+import { rpc } from '@/utils/rpc-client';
 
 export interface HapiConflictSummary {
   iso3: string;
@@ -25,13 +25,7 @@ const hapiBreaker = createCircuitBreaker<Map<string, HapiConflictSummary>>({ nam
 
 export async function fetchHapiSummary(): Promise<Map<string, HapiConflictSummary>> {
   return hapiBreaker.execute(async () => {
-    const response = await fetch(apiUrl('/api/hapi'), {
-      headers: { Accept: 'application/json' },
-    });
-
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-    const result = await response.json();
+    const result = await rpc.hapi();
     const countries: HapiConflictSummary[] = result.countries || [];
 
     const byCode = new Map<string, HapiConflictSummary>();

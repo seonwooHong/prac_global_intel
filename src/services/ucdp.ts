@@ -1,5 +1,5 @@
 import { createCircuitBreaker } from '@/utils';
-import { apiUrl } from '@/utils/api';
+import { rpc } from '@/utils/rpc-client';
 
 export type ConflictIntensity = 'none' | 'minor' | 'war';
 
@@ -60,13 +60,7 @@ const ucdpBreaker = createCircuitBreaker<Map<string, UcdpConflictStatus>>({ name
 
 export async function fetchUcdpClassifications(): Promise<Map<string, UcdpConflictStatus>> {
   return ucdpBreaker.execute(async () => {
-    const response = await fetch(apiUrl('/api/ucdp'), {
-      headers: { Accept: 'application/json' },
-    });
-
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-    const result = await response.json();
+    const result = await rpc.ucdp();
     const conflicts: UcdpApiConflict[] = result.conflicts || [];
 
     const byCountry = new Map<string, UcdpConflictStatus>();

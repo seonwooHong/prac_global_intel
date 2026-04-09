@@ -6,7 +6,7 @@
  */
 
 import type { TheaterPostureSummary } from './military-surge';
-import { apiUrl } from '@/utils/api';
+import { rpc } from '@/utils/rpc-client';
 
 export interface CachedTheaterPosture {
   postures: TheaterPostureSummary[];
@@ -71,13 +71,7 @@ export async function fetchCachedTheaterPosture(): Promise<CachedTheaterPosture 
 
   fetchPromise = (async () => {
     try {
-      const response = await fetch(apiUrl('/api/theater-posture'));
-      if (!response.ok) {
-        console.warn('[CachedTheaterPosture] API error:', response.status);
-        return cachedPosture; // Return stale cache on error
-      }
-
-      const data = await response.json();
+      const data = await rpc.theaterPosture();
       cachedPosture = data;
       lastFetchTime = Date.now();
       saveToStorage(data);

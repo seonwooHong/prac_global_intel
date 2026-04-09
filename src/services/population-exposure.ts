@@ -1,6 +1,6 @@
 import { createCircuitBreaker } from '@/utils';
 import type { CountryPopulation, PopulationExposure } from '@/types';
-import { apiUrl } from '@/utils/api';
+import { rpc } from '@/utils/rpc-client';
 
 interface CountriesResponse {
   success: boolean;
@@ -19,11 +19,7 @@ const countriesBreaker = createCircuitBreaker<CountriesResponse>({ name: 'WorldP
 
 export async function fetchCountryPopulations(): Promise<CountryPopulation[]> {
   const result = await countriesBreaker.execute(async () => {
-    const response = await fetch(apiUrl('/api/worldpop-exposure?mode=countries'), {
-      headers: { Accept: 'application/json' },
-    });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    return response.json();
+    return await rpc.worldpopExposure({ mode: 'countries' });
   }, { success: false, countries: [] });
 
   return result.countries;
@@ -31,12 +27,7 @@ export async function fetchCountryPopulations(): Promise<CountryPopulation[]> {
 
 export async function fetchExposure(lat: number, lon: number, radiusKm: number): Promise<ExposureResponse | null> {
   try {
-    const response = await fetch(
-      `/api/worldpop-exposure?mode=exposure&lat=${lat}&lon=${lon}&radius=${radiusKm}`,
-      { headers: { Accept: 'application/json' } }
-    );
-    if (!response.ok) return null;
-    return response.json();
+    return await rpc.worldpopExposure({ mode: 'exposure', lat, lon, radius: radiusKm });
   } catch {
     return null;
   }

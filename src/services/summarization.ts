@@ -8,7 +8,7 @@ import { mlWorker } from './ml-worker';
 import { SITE_VARIANT } from '@/config';
 import { BETA_MODE } from '@/config/beta';
 import { isFeatureAvailable } from './runtime-config';
-import { apiUrl } from '@/utils/api';
+import { rpc } from '@/utils/rpc-client';
 
 export type SummarizationProvider = 'groq' | 'openrouter' | 'browser' | 'cache';
 
@@ -23,19 +23,8 @@ export type ProgressCallback = (step: number, total: number, message: string) =>
 async function tryGroq(headlines: string[], geoContext?: string, lang?: string): Promise<SummarizationResult | null> {
   if (!isFeatureAvailable('aiGroq')) return null;
   try {
-    const response = await fetch(apiUrl('/api/groq-summarize'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ headlines, mode: 'brief', geoContext, variant: SITE_VARIANT, lang }),
-    });
-
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      if (data.fallback) return null;
-      throw new Error(`Groq error: ${response.status}`);
-    }
-
-    const data = await response.json();
+    const data = await rpc.groqSummarize({ headlines, mode: 'brief', geoContext, variant: SITE_VARIANT, lang });
+    if (data.fallback) return null;
     const provider = data.cached ? 'cache' : 'groq';
     console.log(`[Summarization] ${provider === 'cache' ? 'Redis cache hit' : 'Groq success'}:`, data.model);
     return {
@@ -52,19 +41,8 @@ async function tryGroq(headlines: string[], geoContext?: string, lang?: string):
 async function tryOpenRouter(headlines: string[], geoContext?: string, lang?: string): Promise<SummarizationResult | null> {
   if (!isFeatureAvailable('aiOpenRouter')) return null;
   try {
-    const response = await fetch(apiUrl('/api/openrouter-summarize'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ headlines, mode: 'brief', geoContext, variant: SITE_VARIANT, lang }),
-    });
-
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      if (data.fallback) return null;
-      throw new Error(`OpenRouter error: ${response.status}`);
-    }
-
-    const data = await response.json();
+    const data = await rpc.openrouterSummarize({ headlines, mode: 'brief', geoContext, variant: SITE_VARIANT, lang });
+    if (data.fallback) return null;
     const provider = data.cached ? 'cache' : 'openrouter';
     console.log(`[Summarization] ${provider === 'cache' ? 'Redis cache hit' : 'OpenRouter success'}:`, data.model);
     return {
@@ -223,20 +201,12 @@ export async function translateText(
   if (isFeatureAvailable('aiGroq')) {
     onProgress?.(1, 2, 'Translating with Groq...');
     try {
-      const response = await fetch(apiUrl('/api/groq-summarize'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          headlines: [text],
-          mode: 'translate',
-          variant: targetLang
-        }),
+      const data = await rpc.groqSummarize({
+        headlines: [text],
+        mode: 'translate',
+        variant: targetLang
       });
-
-      if (response.ok) {
-        const data = await response.json();
-        return data.summary;
-      }
+      return data.summary;
     } catch (e) {
       console.warn('Groq translation failed', e);
     }
@@ -246,20 +216,12 @@ export async function translateText(
   if (isFeatureAvailable('aiOpenRouter')) {
     onProgress?.(2, 2, 'Translating with OpenRouter...');
     try {
-      const response = await fetch(apiUrl('/api/openrouter-summarize'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          headlines: [text],
-          mode: 'translate',
-          variant: targetLang
-        }),
+      const data = await rpc.openrouterSummarize({
+        headlines: [text],
+        mode: 'translate',
+        variant: targetLang
       });
-
-      if (response.ok) {
-        const data = await response.json();
-        return data.summary;
-      }
+      return data.summary;
     } catch (e) {
       console.warn('OpenRouter translation failed', e);
     }

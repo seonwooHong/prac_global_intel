@@ -1029,6 +1029,47 @@
     "@nodelib/fs.scandir" "2.1.5"
     fastq "^1.6.0"
 
+"@orpc/client@^1.13.13":
+  version "1.13.13"
+  resolved "https://registry.yarnpkg.com/@orpc/client/-/client-1.13.13.tgz#2abcc4709226fa81996c02ab937655b1afc5ab82"
+  integrity sha512-jagx/Sa+9K4HEC5lBrUlMSrmR/06hvZctWh93/sKZc8GBk4zM0+71oT1kXQVw1oRYFV2XAq3xy3m6NdM6gfKYA==
+  dependencies:
+    "@orpc/shared" "1.13.13"
+    "@orpc/standard-server" "1.13.13"
+    "@orpc/standard-server-fetch" "1.13.13"
+    "@orpc/standard-server-peer" "1.13.13"
+
+"@orpc/shared@1.13.13":
+  version "1.13.13"
+  resolved "https://registry.yarnpkg.com/@orpc/shared/-/shared-1.13.13.tgz#44b0db1ad5a0f08ba8ebb520b003d09568d0323e"
+  integrity sha512-kNpYOBjHvmgKHla6munWOaEeA0utEfAvoiZpXjiRjjt1RxTibdwQvVHgxRIBNMXfQsb+ON3Q/wDkoaUhvvSnIw==
+  dependencies:
+    radash "^12.1.1"
+    type-fest "^5.4.4"
+
+"@orpc/standard-server-fetch@1.13.13":
+  version "1.13.13"
+  resolved "https://registry.yarnpkg.com/@orpc/standard-server-fetch/-/standard-server-fetch-1.13.13.tgz#da1d8dbd706aa67a13c860ee1da2d4b462c1e870"
+  integrity sha512-Lffy26+WtCQkwOUacsrdyeJF1GNzrhm75O3LXKVFXqmSdyVVdyI6zuqLn/YKGODU2L9IqGxZ2CwsV2tE298SSA==
+  dependencies:
+    "@orpc/shared" "1.13.13"
+    "@orpc/standard-server" "1.13.13"
+
+"@orpc/standard-server-peer@1.13.13":
+  version "1.13.13"
+  resolved "https://registry.yarnpkg.com/@orpc/standard-server-peer/-/standard-server-peer-1.13.13.tgz#0fdba351a92886f49a0aeb0ee54650de8621cd22"
+  integrity sha512-FeWAbXfnZDPYQRajM0hD6GJvHeC3DZILngAjdcLHy5zt3riu6nL2lLPSWDv5yNWWscmYU+CfKmXWd0Z01BOeWA==
+  dependencies:
+    "@orpc/shared" "1.13.13"
+    "@orpc/standard-server" "1.13.13"
+
+"@orpc/standard-server@1.13.13":
+  version "1.13.13"
+  resolved "https://registry.yarnpkg.com/@orpc/standard-server/-/standard-server-1.13.13.tgz#c6db062804d08aff9c736646146e07025418addc"
+  integrity sha512-9pgS8XvauuRQElkyuD8F3om+nN0KBEnTkhblDHCBzkZERjWkmfirJmshQrWHoFaDTk+nnXHIaY6d7TBTxXdPRw==
+  dependencies:
+    "@orpc/shared" "1.13.13"
+
 "@playwright/test@^1.52.0":
   version "1.59.1"
   resolved "https://registry.yarnpkg.com/@playwright/test/-/test-1.59.1.tgz#5c4d38eac84a61527af466602ae20277685a02d6"
@@ -3510,6 +3551,11 @@ quickselect@^3.0.0:
   resolved "https://registry.yarnpkg.com/quickselect/-/quickselect-3.0.0.tgz#a37fc953867d56f095a20ac71c6d27063d2de603"
   integrity sha512-XdjUArbK4Bm5fLLvlm5KpTFOiOThgfWWI4axAZDWg4E/0mKdZyI9tNEfds27qCi1ze/vwTR16kvmmGhRra3c2g==
 
+radash@^12.1.1:
+  version "12.1.1"
+  resolved "https://registry.yarnpkg.com/radash/-/radash-12.1.1.tgz#4858a08a04318a07d6d92d17d11b7528938edd93"
+  integrity sha512-h36JMxKRqrAxVD8201FrCpyeNuUY9Y5zZwujr20fFO77tpUtGa6EZzfKw/3WaiBX95fq7+MpsuMLNdSnORAwSA==
+
 rc@^1.2.7:
   version "1.2.8"
   resolved "https://registry.yarnpkg.com/rc/-/rc-1.2.8.tgz#cd924bf5200a075b83c188cd6b9e211b7fc0d3ed"
@@ -3782,6 +3828,11 @@ table-layout@^4.1.1:
     array-back "^6.2.2"
     wordwrapjs "^5.1.0"
 
+tagged-tag@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/tagged-tag/-/tagged-tag-1.0.0.tgz#a0b5917c2864cba54841495abfa3f6b13edcf4d6"
+  integrity sha512-yEFYrVhod+hdNyx7g5Bnkkb0G6si8HJurOoOEgC8B/O0uXLHlaey/65KRv6cuWBNhBgHKAROVpc7QyYqE5gFng==
+
 tar-fs@^2.0.0:
   version "2.1.4"
   resolved "https://registry.yarnpkg.com/tar-fs/-/tar-fs-2.1.4.tgz#800824dbf4ef06ded9afea4acafe71c67c76b930"
@@ -3884,6 +3935,13 @@ tunnel-agent@^0.6.0:
   integrity sha512-McnNiV1l8RYeY8tBgEpuodCC1mLUdbSN+CYBL7kJsJNInOP8UjDDEwdk6Mw60vdLLrr5NHKZhMAOSrR2NZuQ+w==
   dependencies:
     safe-buffer "^5.0.1"
+
+type-fest@^5.4.4:
+  version "5.5.0"
+  resolved "https://registry.yarnpkg.com/type-fest/-/type-fest-5.5.0.tgz#78fca72f3a1f9ec964e6ae260db492b070c56f3b"
+  integrity sha512-PlBfpQwiUvGViBNX84Yxwjsdhd1TUlXr6zjX7eoirtCPIr08NAmxwa+fcYBTeRQxHo9YC9wwF3m9i700sHma8g==
+  dependencies:
+    tagged-tag "^1.0.0"
 
 typescript@^5.7.2:
   version "5.9.3"

@@ -1,6 +1,6 @@
 import { createCircuitBreaker } from '@/utils';
 import { isFeatureAvailable } from './runtime-config';
-import { apiUrl } from '@/utils/api';
+import { rpc } from '@/utils/rpc-client';
 
 export type ConflictEventType = 'battle' | 'explosion' | 'remote_violence' | 'violence_against_civilians';
 
@@ -58,13 +58,7 @@ async function fetchAcledConflictEvents(): Promise<ConflictEvent[]> {
   if (!isFeatureAvailable('acledConflicts')) return [];
 
   return conflictBreaker.execute(async () => {
-    const response = await fetch(apiUrl('/api/acled-conflict'), {
-      headers: { Accept: 'application/json' },
-    });
-
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-    const result = await response.json();
+    const result = await rpc.acledConflict();
     if (result.configured === false) throw new Error('ACLED not configured');
 
     const events: AcledConflictEvent[] = result.data || [];

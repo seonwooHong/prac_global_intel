@@ -1,6 +1,6 @@
 import { createCircuitBreaker, getCSSColor } from '@/utils';
 import type { ClimateAnomaly } from '@/types';
-import { apiUrl } from '@/utils/api';
+import { rpc } from '@/utils/rpc-client';
 
 interface ClimateResponse {
   success: boolean;
@@ -18,11 +18,7 @@ const breaker = createCircuitBreaker<ClimateResponse>({ name: 'Climate Anomalies
 
 export async function fetchClimateAnomalies(): Promise<ClimateFetchResult> {
   const result = await breaker.execute(async () => {
-    const response = await fetch(apiUrl('/api/climate-anomalies'), {
-      headers: { Accept: 'application/json' },
-    });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    return response.json();
+    return await rpc.climateAnomalies();
   }, { success: false, anomalies: [], timestamp: '' });
 
   const anomalies = result.anomalies.filter((a: ClimateAnomaly) => a.severity !== 'normal');

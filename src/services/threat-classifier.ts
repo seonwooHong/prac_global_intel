@@ -1,4 +1,4 @@
-import { apiUrl } from '@/utils/api';
+import { rpc } from '@/utils/rpc-client';
 
 export type ThreatLevel = 'critical' | 'high' | 'medium' | 'low' | 'info';
 
@@ -307,26 +307,8 @@ function flushBatch(): void {
   const variant = batch[0]!.variant;
   const titles = batch.map(j => j.title);
 
-  fetch(apiUrl('/api/classify-batch'), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ titles, variant }),
-  })
-    .then(resp => {
-      if (resp.status === 429 || resp.status >= 500) {
-        batchPaused = true;
-        const delay = resp.status === 429 ? 60_000 : 30_000;
-        console.warn(`[Classify] ${resp.status} — pausing AI classification for ${delay / 1000}s`);
-        for (const job of batch) job.resolve(null);
-        while (batchQueue.length > 0) batchQueue.shift()!.resolve(null);
-        setTimeout(() => { batchPaused = false; scheduleBatch(); }, delay);
-        return null;
-      }
-      if (!resp.ok) { for (const job of batch) job.resolve(null); return null; }
-      return resp.json();
-    })
-    .then(data => {
-      if (!data) return;
+  rpc.classifyBatch({ titles, variant })
+    .then((data: any) => {
       const results: Array<{ level?: string; category?: string } | null> = data.results || [];
       for (let i = 0; i < batch.length; i++) {
         const r = results[i];
@@ -343,7 +325,18 @@ function flushBatch(): void {
         }
       }
     })
-    .catch(() => { for (const job of batch) job.resolve(null); })
+    .catch((err: any) => {
+      // Handle rate limiting and server errors
+      const status = err?.status;
+      if (status === 429 || status >= 500) {
+        batchPaused = true;
+        const delay = status === 429 ? 60_000 : 30_000;
+        console.warn(`[Classify] ${status} — pausing AI classification for ${delay / 1000}s`);
+        while (batchQueue.length > 0) batchQueue.shift()!.resolve(null);
+        setTimeout(() => { batchPaused = false; scheduleBatch(); }, delay);
+      }
+      for (const job of batch) job.resolve(null);
+    })
     .finally(() => scheduleBatch());
 }
 

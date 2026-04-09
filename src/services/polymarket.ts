@@ -1,6 +1,6 @@
 import type { PredictionMarket } from '@/types';
 import { createCircuitBreaker } from '@/utils';
-import { apiUrl } from '@/utils/api';
+import { rpc } from '@/utils/rpc-client';
 
 interface PolymarketMarket {
   question: string;
@@ -111,12 +111,11 @@ async function polyFetch(endpoint: 'events' | 'markets', params: Record<string, 
     } catch { /* Railway unavailable */ }
   }
 
-  // Try Vercel edge function
+  // Try Vercel edge function via oRPC
   try {
-    const resp = await fetch(apiUrl(`/api/polymarket?${proxyQs}`));
-    if (resp.ok) {
-      const data = await resp.clone().json();
-      if (Array.isArray(data) && data.length > 0) return resp;
+    const data = await rpc.polymarket(Object.fromEntries(new URLSearchParams(proxyQs)));
+    if (Array.isArray(data) && data.length > 0) {
+      return new Response(JSON.stringify(data), { status: 200, headers: { 'Content-Type': 'application/json' } });
     }
   } catch { /* local proxy failed */ }
 
